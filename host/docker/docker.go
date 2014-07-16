@@ -73,7 +73,7 @@ func (h *Host) Restart() error {
 }
 
 func (h *Host) Availability() (map[string][]string, error) {
-	return nil, nil
+	return make(map[string][]string), nil
 }
 
 func (h *Host) createImage() (string, error) {

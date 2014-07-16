@@ -151,7 +151,7 @@ func (h *Host) Restart() error {
 }
 
 func (h *Host) Availability() (map[string][]string, error) {
-	return nil, nil
+	return nil, errors.New("Not implemented")
 }
 
 func NewHost(defaultConfig map[string]string, config string) (host.Host, error) {
