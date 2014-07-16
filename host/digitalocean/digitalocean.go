@@ -13,6 +13,7 @@ import (
 	"github.com/nitrous-io/hostbuilder/context"
 	"github.com/nitrous-io/hostbuilder/host"
 	do "github.com/nitrous-io/hostbuilder/pkg/digitalocean"
+	"github.com/nitrous-io/hostbuilder/pkg/digitalocean/v2"
 	"github.com/nitrous-io/hostbuilder/pkg/ssh"
 )
 
@@ -32,8 +33,9 @@ type HostConfig struct {
 }
 
 type Host struct {
-	Client *do.Client
-	Config *HostConfig
+	Client   *do.Client
+	ClientV2 *v2.Client
+	Config   *HostConfig
 
 	instance   *do.Droplet
 	privateKey *rsa.PrivateKey
@@ -129,7 +131,18 @@ func (h *Host) Restart() error {
 }
 
 func (h *Host) Availability() (map[string][]string, error) {
-	return nil, nil
+	client := h.ClientV2
+	regions, err := client.Regions()
+	if err != nil {
+		return nil, err
+	}
+	a := make(map[string][]string)
+	for _, r := range regions {
+		if r.Available {
+			a[r.Slug] = r.Sizes
+		}
+	}
+	return a, nil
 }
 
 func (h *Host) id() (int, error) {
@@ -142,14 +155,16 @@ func (h *Host) id() (int, error) {
 
 func NewHost(defaultConfig map[string]string, config string) (host.Host, error) {
 	client := do.NewClient(defaultConfig["client_id"], defaultConfig["api_key"])
+	clientV2 := v2.NewClient(defaultConfig["token"])
 	hostConfig := &HostConfig{}
 	if err := json.Unmarshal([]byte(config), hostConfig); err != nil {
 		log.Printf("digitalocean: invalid config %s", config)
 		return nil, err
 	}
 	host := &Host{
-		Config: hostConfig,
-		Client: client,
+		Config:   hostConfig,
+		Client:   client,
+		ClientV2: clientV2,
 	}
 	return host, nil
 }

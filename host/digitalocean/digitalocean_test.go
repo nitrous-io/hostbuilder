@@ -6,6 +6,8 @@ import (
 
 	do "github.com/nitrous-io/hostbuilder/pkg/digitalocean"
 	"github.com/nitrous-io/hostbuilder/pkg/digitalocean/dotest"
+	"github.com/nitrous-io/hostbuilder/pkg/digitalocean/dotestv2"
+	"github.com/nitrous-io/hostbuilder/pkg/digitalocean/v2"
 
 	. "github.com/nitrous-io/hostbuilder/host/digitalocean"
 	. "github.com/onsi/ginkgo"
@@ -169,6 +171,63 @@ var _ = Describe("host/digitalocean", func() {
 				request := s.Requests["droplets/id/power_on"][0]
 				Expect(request.URL.Path).To(Equal("/droplets/1/power_on"))
 			})
+		})
+	})
+})
+
+var _ = Describe("digitalocean/v2", func() {
+	var s *dotestv2.Server
+	var ts *httptest.Server
+	var c *v2.Client
+
+	BeforeEach(func() {
+		s = dotestv2.NewServer()
+		ts = httptest.NewServer(s.Router)
+		c = v2.NewClient("token")
+		c.BaseURL = ts.URL
+	})
+
+	AfterEach(func() {
+		ts.Close()
+	})
+
+	Describe("Availability", func() {
+		It("returns the availability of regions and sizes", func() {
+			regions := `{
+				"regions": [
+					{
+						"slug": "sgp1",
+						"name": "Singapore 1",
+						"sizes": ["512mb", "1024mb"],
+						"available": true,
+						"features": ["ipv6", "virtio", "private_networking"]
+					},
+					{
+						"slug": "nyc2",
+						"name": "New York 2",
+						"sizes": ["512mb"],
+						"available": true,
+						"features": ["ipv6", "virtio", "private_networking"]
+					},
+					{
+						"slug": "asm1",
+						"name": "Amsterdam 1",
+						"sizes": ["512mb", "1024mb"],
+						"available": false,
+						"features": ["ipv6", "virtio", "private_networking"]
+					}
+				]
+			}`
+			s.AddResponse("GET", "regions", dotestv2.NewResponse(200, regions))
+
+			h := Host{ClientV2: c}
+
+			ha, err := h.Availability()
+			Expect(err).To(BeNil(), "should succesfully get availability")
+
+			Expect(ha["sgp1"]).To(Equal([]string{"512mb", "1024mb"}))
+			Expect(ha["nyc2"]).To(Equal([]string{"512mb"}))
+			Expect(ha).ToNot(HaveKey("asm1"))
 		})
 	})
 })
