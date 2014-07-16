@@ -256,3 +256,27 @@ Content-Type: application/json; charset=utf-8
 
 - **200** - OK (host successfully restarted)
 - **400** - missing or invalid params
+
+#### Availability
+
+`GET /availability`
+
+**Example request**:
+
+```
+GET /availability HTTP/1.1
+```
+
+**Example response**:
+
+```javascript
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "digitalocean": {
+    "sgp1": ["512mb", "1024mb"],
+    "asm2": ["1024mb", "2048mb"]
+  }
+}
+```
