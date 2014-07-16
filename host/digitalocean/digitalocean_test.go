@@ -210,7 +210,7 @@ var _ = Describe("digitalocean/v2", func() {
 						"features": ["ipv6", "virtio", "private_networking"]
 					},
 					{
-						"slug": "asm1",
+						"slug": "ams1",
 						"name": "Amsterdam 1",
 						"sizes": ["512mb", "1024mb"],
 						"available": false,
