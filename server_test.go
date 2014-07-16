@@ -28,7 +28,7 @@ var _ = Describe("hostbuilder", func() {
 	var err error
 
 	BeforeEach(func() {
-		s, err = New([]byte(`{"dummy":{}}`))
+		s, err = New([]byte(`{"providers":{"dummy":{}}}`))
 		Expect(err).To(BeNil())
 		ts = httptest.NewServer(s.Router)
 	})
@@ -122,6 +122,15 @@ var _ = Describe("hostbuilder", func() {
 			body, err := ioutil.ReadAll(resp.Body)
 			Expect(err).To(BeNil())
 			Expect(body).To(MatchJSON(`{"status":"ok"}`))
+		})
+	})
+
+	Describe("GET /availability", func() {
+		It("gets available regions for each provider", func() {
+			resp, err := http.Get(fmt.Sprintf("%s/%s", ts.URL, "/availability"))
+			Expect(err).To(BeNil())
+			body, _ := ioutil.ReadAll(resp.Body)
+			Expect(body).To(MatchJSON(`{"dummy":{"dummy":["small", "medium"]}}`))
 		})
 	})
 })
