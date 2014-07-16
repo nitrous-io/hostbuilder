@@ -153,6 +153,12 @@ func (s *Server) restartHost(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	writeResponse(w, okResponse)
+
+	return nil
+}
+
+// get availability of each providers
+func (s *Server) availability(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
@@ -165,6 +171,9 @@ func (s *Server) CreateRouter() {
 			"/hosts/stop":    s.stopHost,
 			"/hosts/start":   s.startHost,
 			"/hosts/restart": s.restartHost,
+		},
+		"GET": {
+			"/availability": s.availability,
 		},
 	}
 	for method, routes := range m {

@@ -16,6 +16,16 @@ type Host interface {
 	Start() error           // start the current host
 	Restart() error         // reboot the current host
 	Info() (*Info, error)   // get current info of the host
+
+	// get all available regions and sizes identifier for that region.
+	// For example, with DigitalOcean provider:
+	// {
+	//	"sgp1": ["512mb", "1024mb"],
+	//	"nyc2": ["1024mb", "2048mb"],
+	// }
+	// It's the API's caller responsibility to make sense of the data ( by
+	// mapping these identifier with their predefined properties )
+	Availability() (map[string][]string, error)
 }
 
 type NewHost func(defaultConfig map[string]string, config string) (Host, error)

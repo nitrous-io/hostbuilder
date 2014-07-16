@@ -128,6 +128,10 @@ func (h *Host) Restart() error {
 	return nil
 }
 
+func (h *Host) Availability() (map[string][]string, error) {
+	return nil, nil
+}
+
 func (h *Host) id() (int, error) {
 	id64, err := strconv.ParseInt(h.Config.ID, 10, 64)
 	if err != nil {
