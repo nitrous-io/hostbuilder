@@ -38,11 +38,20 @@ type providerConfig map[string]string
 type config struct {
 	Address   string                    `json:"address"`
 	Providers map[string]providerConfig `json:"providers"`
+	SSLPaths  map[string]string         `json:"ssl"`
 }
 
 type Server struct {
 	Config *config
 	Router *mux.Router
+}
+
+func (s *Server) SSLCertPath() string {
+	return s.Config.SSLPaths["certfile"]
+}
+
+func (s *Server) SSLKeyPath() string {
+	return s.Config.SSLPaths["keyfile"]
 }
 
 func (s *Server) createHost(w http.ResponseWriter, r *http.Request) error {
