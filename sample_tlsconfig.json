@@ -1,0 +1,18 @@
+{
+  "address": ":8443",
+  "certfile": "./sample-certs/priv.n2ostaging.com.crt",
+  "keyfile":  "./sample-certs/priv.n2ostaging.com.key",
+  "providers": {
+    "amazon": {
+      "access_key": "",
+      "secret_key": ""
+    },
+    "digitalocean": {
+      "client_id": "",
+      "api_key": ""
+    },
+    "docker": {
+      "freighterd_location": "/home/vagrant/workspace/freighter/.vendor/bin/freighterd"
+    }
+  }
+}
