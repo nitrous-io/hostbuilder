@@ -40,7 +40,9 @@ type providerConfig map[string]string
 type config struct {
 	Address   string                    `json:"address"`
 	Providers map[string]providerConfig `json:"providers"`
-	SSLPaths  map[string]string         `json:"ssl"`
+	CAFile    string                    `json:"cafile"`
+	CertFile  string                    `json:"certfile"`
+	KeyFile   string                    `json:"keyfile"`
 }
 
 type Server struct {
@@ -48,25 +50,14 @@ type Server struct {
 	Router *mux.Router
 }
 
-type CertPaths struct {
-	CA   string
-	Cert string
-	Key  string
-}
-
-func (s *Server) sslPaths() *CertPaths {
-	return &CertPaths{
-		CA:   s.Config.SSLPaths["cafile"],
-		Cert: s.Config.SSLPaths["certfile"],
-		Key:  s.Config.SSLPaths["keyfile"],
-	}
-}
-
 func (s *Server) TLSConfig() *tls.Config {
-	cp := s.sslPaths()
-	cert, err := tls.LoadX509KeyPair(cp.Cert, cp.Key)
+	caFile := s.Config.CertFile
+	certFile := s.Config.CertFile
+	keyFile := s.Config.KeyFile
+
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
-		log.Printf("hostbuilder: Failed to load X509 keypair - %s & %s: %s", cp.Cert, cp.Key, err)
+		log.Printf("hostbuilder: Failed to load X509 keypair - %s & %s: %s", certFile, keyFile, err)
 	}
 	tlsConfig := &tls.Config{
 		NextProtos:   []string{"http/1.1"},
@@ -74,14 +65,14 @@ func (s *Server) TLSConfig() *tls.Config {
 	}
 
 	certPool := x509.NewCertPool()
-	caFile, err := ioutil.ReadFile(cp.CA)
+	caBytes, err := ioutil.ReadFile(caFile)
 	if err != nil {
-		log.Printf("hostbuilder: Failed to read CA certificate, %s: %s", cp.CA, err)
+		log.Printf("hostbuilder: Failed to read CA certificate, %s: %s", caFile, err)
 	}
 
-	certPool.AppendCertsFromPEM(caFile)
+	certPool.AppendCertsFromPEM(caBytes)
 
-	tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+	tlsConfig.ClientAuth = tls.RequireAnyClientCert
 	tlsConfig.ClientCAs = certPool
 	return tlsConfig
 }
