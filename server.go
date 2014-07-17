@@ -1,7 +1,10 @@
 package hostbuilder
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -37,11 +40,50 @@ type providerConfig map[string]string
 type config struct {
 	Address   string                    `json:"address"`
 	Providers map[string]providerConfig `json:"providers"`
+	SSLPaths  map[string]string         `json:"ssl"`
 }
 
 type Server struct {
 	Config *config
 	Router *mux.Router
+}
+
+type CertPaths struct {
+	CA   string
+	Cert string
+	Key  string
+}
+
+func (s *Server) sslPaths() *CertPaths {
+	return &CertPaths{
+		CA:   s.Config.SSLPaths["cafile"],
+		Cert: s.Config.SSLPaths["certfile"],
+		Key:  s.Config.SSLPaths["keyfile"],
+	}
+}
+
+func (s *Server) TLSConfig() *tls.Config {
+	cp := s.sslPaths()
+	cert, err := tls.LoadX509KeyPair(cp.Cert, cp.Key)
+	if err != nil {
+		log.Printf("hostbuilder: Failed to load X509 keypair - %s & %s: %s", cp.Cert, cp.Key, err)
+	}
+	tlsConfig := &tls.Config{
+		NextProtos:   []string{"http/1.1"},
+		Certificates: []tls.Certificate{cert},
+	}
+
+	certPool := x509.NewCertPool()
+	caFile, err := ioutil.ReadFile(cp.CA)
+	if err != nil {
+		log.Printf("hostbuilder: Failed to read CA certificate, %s: %s", cp.CA, err)
+	}
+
+	certPool.AppendCertsFromPEM(caFile)
+
+	tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+	tlsConfig.ClientCAs = certPool
+	return tlsConfig
 }
 
 func (s *Server) createHost(w http.ResponseWriter, r *http.Request) error {
