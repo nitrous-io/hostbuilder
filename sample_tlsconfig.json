@@ -1,0 +1,20 @@
+{
+  "address": ":8443",
+  "providers": {
+    "amazon": {
+      "access_key": "",
+      "secret_key": ""
+    },
+    "digitalocean": {
+      "client_id": "",
+      "api_key": ""
+    },
+    "docker": {
+      "freighterd_location": "/home/vagrant/workspace/freighter/.vendor/bin/freighterd"
+    }
+  },
+  "ssl": {
+    "certfile": "./pro.nitrous.com.svr.crt",
+    "keyfile": "./pro.nitrous.com.svr.key"
+  }
+}
