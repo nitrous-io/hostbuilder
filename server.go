@@ -151,7 +151,54 @@ func (s *Server) restartHost(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	writeResponse(w, okResponse)
+
 	return nil
+}
+
+// get availability of each providers
+type providerAvailablity struct {
+	provider     string
+	availability map[string][]string
+	err          error
+}
+
+func (s *Server) availability(w http.ResponseWriter, r *http.Request) error {
+	// check availability for all configured providers that we have
+	avail := make(chan *providerAvailablity, len(s.Config.Providers))
+
+	// loop over all the providers and check their availability
+	for provider, config := range s.Config.Providers {
+		go func(provider string, config map[string]string) {
+			log.Printf("Getting availability for %s", provider)
+			h, err := InitHost(provider, config, "{}")
+			if err != nil {
+				avail <- &providerAvailablity{
+					provider: provider,
+					err:      err,
+				}
+				return
+			}
+
+			ha, err := h.Availability()
+			avail <- &providerAvailablity{
+				provider:     provider,
+				availability: ha,
+				err:          err,
+			}
+		}(provider, config)
+	}
+
+	resp := make(map[string]map[string][]string)
+	for _, _ = range s.Config.Providers {
+		ha := <-avail
+		if ha.err != nil {
+			log.Printf("Failed to get availability for provider %s: %v",
+				ha.provider, ha.err)
+		} else {
+			resp[ha.provider] = ha.availability
+		}
+	}
+	return json.NewEncoder(w).Encode(resp)
 }
 
 func (s *Server) CreateRouter() {
@@ -163,6 +210,9 @@ func (s *Server) CreateRouter() {
 			"/hosts/stop":    s.stopHost,
 			"/hosts/start":   s.startHost,
 			"/hosts/restart": s.restartHost,
+		},
+		"GET": {
+			"/availability": s.availability,
 		},
 	}
 	for method, routes := range m {

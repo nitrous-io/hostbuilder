@@ -7,7 +7,8 @@
     },
     "digitalocean": {
       "client_id": "",
-      "api_key": ""
+      "api_key": "",
+      "token": ""
     },
     "docker": {
       "freighterd_location": "/home/vagrant/workspace/freighter/.vendor/bin/freighterd"

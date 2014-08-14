@@ -62,6 +62,12 @@ func (h *Host) Restart() error {
 	return errors.New("Failed to restart host")
 }
 
+func (h *Host) Availability() (map[string][]string, error) {
+	return map[string][]string{
+		"dummy": {"small", "medium"},
+	}, nil
+}
+
 func NewHost(defaultConfig map[string]string, config string) (host.Host, error) {
 	var host Host
 	json.Unmarshal([]byte(config), &host)

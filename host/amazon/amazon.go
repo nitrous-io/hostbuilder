@@ -150,6 +150,10 @@ func (h *Host) Restart() error {
 	panic("amazon provider does not support restart yet")
 }
 
+func (h *Host) Availability() (map[string][]string, error) {
+	return nil, errors.New("Not implemented")
+}
+
 func NewHost(defaultConfig map[string]string, config string) (host.Host, error) {
 	hostConfig := &HostConfig{}
 	if err := json.Unmarshal([]byte(config), hostConfig); err != nil {

@@ -78,6 +78,10 @@ func (h *Host) Restart() error {
 	return h.client.RestartContainer(h.ID, uint(5))
 }
 
+func (h *Host) Availability() (map[string][]string, error) {
+	return make(map[string][]string), nil
+}
+
 func (h *Host) createImage() (string, error) {
 	buf := bytes.NewBuffer(nil)
 	if err := dockerfileTemplate.Execute(buf, h); err != nil {
