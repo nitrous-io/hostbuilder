@@ -4,6 +4,7 @@ github.com/mitchellh/goamz/ec2 #a229e58f69971f5e1a31d6870734d2abaa4468e1
 github.com/mitchellh/goamz/aws #a229e58f69971f5e1a31d6870734d2abaa4468e1
 code.google.com/p/go.crypto/ssh #fe6c00a82e55
 github.com/fsouza/go-dockerclient #6062c6b35beaffaf643b2f80f926b6337c3db63a
+github.com/riobard/go-virtualbox #4b95a2214900e2e14ff709b832c4e895409ab584
 
 github.com/onsi/ginkgo/ginkgo #12446bbcc74950944c897e32ea99cc8d058f9c92
 github.com/onsi/gomega #036273e6f643552b16fe7a6464afd2ae0324992e
