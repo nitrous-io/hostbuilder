@@ -15,12 +15,25 @@ import (
 	"github.com/nitrous-io/hostbuilder/host"
 )
 
+var (
+	TLSCALocation   = "/etc/freighterd/ca.crt"
+	TLSCertLocation = "/etc/freighterd/cert.crt"
+	TLSKeyLocation  = "/etc/freighterd/key.crt"
+)
+
+type tlsConfig struct {
+	CA   string `json:"ca"`
+	Cert string `json:"cert"`
+	Key  string `json:"key"`
+}
+
 type Host struct {
-	ID                 string   `json:"id"`
-	Name               string   `json:"name"`
-	PublicKeys         []string `json:"public_keys"`
-	IpAddress          string   `json:"ip_address"`
-	FreighterdLocation string   `json:"freighterd_location"`
+	ID                 string     `json:"id"`
+	Name               string     `json:"name"`
+	PublicKeys         []string   `json:"public_keys"`
+	IpAddress          string     `json:"ip_address"`
+	FreighterdLocation string     `json:"freighterd_location"`
+	TLS                *tlsConfig `json:"tls"`
 
 	client *dockerclient.Client
 }
