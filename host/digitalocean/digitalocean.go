@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"strconv"
 	"time"
@@ -15,13 +16,26 @@ import (
 	"github.com/nitrous-io/hostbuilder/pkg/ssh"
 )
 
+var (
+	TLSCALocation   = "/etc/freighterd/ca.crt"
+	TLSCertLocation = "/etc/freighterd/cert.crt"
+	TLSKeyLocation  = "/etc/freighterd/key.crt"
+)
+
+type tlsConfig struct {
+	CA   string `json:"ca"`
+	Cert string `json:"cert"`
+	Key  string `json:"key"`
+}
+
 type HostConfig struct {
-	ID         string   `json:"id"`
-	Name       string   `json:"name"`
-	ImageID    string   `json:"image_id"`
-	RegionID   string   `json:"region_id"`
-	SizeID     string   `json:"size_id"`
-	PublicKeys []string `json:"public_keys"`
+	ID         string     `json:"id"`
+	Name       string     `json:"name"`
+	ImageID    string     `json:"image_id"`
+	RegionID   string     `json:"region_id"`
+	SizeID     string     `json:"size_id"`
+	PublicKeys []string   `json:"public_keys"`
+	TLS        *tlsConfig `json:"tls"`
 
 	// for setting up repository on the host
 	AptUsername string `json:"apt_username"` // username of nitrous.io
@@ -52,6 +66,7 @@ func (h *Host) Create() (*host.Info, error) {
 		waitForSSH,
 		writePublicKeys,
 		writeRepository,
+		writeTLSCerts,
 	}
 	ctx := context.NewContext(h, steps)
 	if err := ctx.Execute(); err != nil {
@@ -243,5 +258,20 @@ func writeRepository(ctx *context.Context, hst host.Host) error {
 		return err
 	}
 	log.Printf("Uploaded apt details at %v", h.droplet.IpAddress)
+	return nil
+}
+
+func writeTLSCerts(ctx *context.Context, hst host.Host) error {
+	h := hst.(*Host)
+	loc := map[string]io.Reader{
+		TLSCALocation:   bytes.NewBufferString(h.Config.TLS.CA),
+		TLSCertLocation: bytes.NewBufferString(h.Config.TLS.Cert),
+		TLSKeyLocation:  bytes.NewBufferString(h.Config.TLS.Key),
+	}
+	for dest, val := range loc {
+		if err := h.conn.Upload(dest, val); err != nil {
+			return err
+		}
+	}
 	return nil
 }
