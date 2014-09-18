@@ -2,9 +2,7 @@ package hostbuilder
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
-	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -40,7 +38,6 @@ type providerConfig map[string]string
 type config struct {
 	Address   string                    `json:"address"`
 	Providers map[string]providerConfig `json:"providers"`
-	CAFile    string                    `json:"cafile"`
 	CertFile  string                    `json:"certfile"`
 	KeyFile   string                    `json:"keyfile"`
 }
@@ -51,29 +48,19 @@ type Server struct {
 }
 
 func (s *Server) TLSConfig() *tls.Config {
-	caFile := s.Config.CertFile
 	certFile := s.Config.CertFile
 	keyFile := s.Config.KeyFile
 
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
-		log.Printf("hostbuilder: Failed to load X509 keypair - %s & %s: %s", certFile, keyFile, err)
+		log.Fatalf("hostbuilder: Failed to load X509 keypair: %s", err)
 	}
 	tlsConfig := &tls.Config{
 		NextProtos:   []string{"http/1.1"},
 		Certificates: []tls.Certificate{cert},
 	}
 
-	certPool := x509.NewCertPool()
-	caBytes, err := ioutil.ReadFile(caFile)
-	if err != nil {
-		log.Printf("hostbuilder: Failed to read CA certificate, %s: %s", caFile, err)
-	}
-
-	certPool.AppendCertsFromPEM(caBytes)
-
 	tlsConfig.ClientAuth = tls.RequireAnyClientCert
-	tlsConfig.ClientCAs = certPool
 	return tlsConfig
 }
 
