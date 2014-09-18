@@ -1,6 +1,7 @@
 package hostbuilder
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -37,11 +38,30 @@ type providerConfig map[string]string
 type config struct {
 	Address   string                    `json:"address"`
 	Providers map[string]providerConfig `json:"providers"`
+	CertFile  string                    `json:"certfile"`
+	KeyFile   string                    `json:"keyfile"`
 }
 
 type Server struct {
 	Config *config
 	Router *mux.Router
+}
+
+func (s *Server) TLSConfig() *tls.Config {
+	certFile := s.Config.CertFile
+	keyFile := s.Config.KeyFile
+
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		log.Fatalf("hostbuilder: Failed to load X509 keypair: %s", err)
+	}
+	tlsConfig := &tls.Config{
+		NextProtos:   []string{"http/1.1"},
+		Certificates: []tls.Certificate{cert},
+	}
+
+	tlsConfig.ClientAuth = tls.RequireAnyClientCert
+	return tlsConfig
 }
 
 func (s *Server) createHost(w http.ResponseWriter, r *http.Request) error {
