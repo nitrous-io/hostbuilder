@@ -31,20 +31,17 @@ func main() {
 		return
 	}
 	if len(*flConfig) == 0 {
-		log.Printf("hostbuilder: missing config file")
-		os.Exit(1)
+		log.Fatalf("hostbuilder: missing config file")
 	}
 	configData, err := ioutil.ReadFile(*flConfig)
 	if err != nil {
-		log.Printf("hostbuilder: failed to read config file")
-		os.Exit(1)
+		log.Fatalf("hostbuilder: failed to read config file")
 	}
 
 	// start the server
 	server, err := hostbuilder.New(configData)
 	if err != nil {
-		log.Printf("hostbuilder: failed to create server %v", err)
-		os.Exit(1)
+		log.Fatalf("hostbuilder: failed to create server %v", err)
 	}
 
 	tlsConfig := server.TLSConfig()
