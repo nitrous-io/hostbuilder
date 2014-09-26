@@ -3,7 +3,9 @@ package docker
 import "text/template"
 
 const dockerfileTmpl = `
-FROM nitrousio/native-dind:8dd11c7
+FROM nitrousio/ubuntu-dind:14.04
+
+RUN wget http://nitrous-public.s3.amazonaws.com/docker-6df533a -O /usr/bin/docker
 
 ENV HOME /root
 
