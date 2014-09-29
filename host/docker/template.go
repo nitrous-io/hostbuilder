@@ -5,7 +5,8 @@ import "text/template"
 const dockerfileTmpl = `
 FROM nitrousio/ubuntu-dind:14.04
 
-RUN wget http://nitrous-public.s3.amazonaws.com/docker-6df533a -O /usr/bin/docker
+ADD http://nitrous-public.s3.amazonaws.com/docker-6df533a /usr/bin/docker
+RUN chmod +x /usr/bin/docker
 
 ENV HOME /root
 
