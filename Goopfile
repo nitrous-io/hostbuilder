@@ -5,8 +5,8 @@ github.com/mitchellh/goamz/aws #a229e58f69971f5e1a31d6870734d2abaa4468e1
 code.google.com/p/go.crypto/ssh #fe6c00a82e55
 github.com/fsouza/go-dockerclient #6062c6b35beaffaf643b2f80f926b6337c3db63a
 
-github.com/onsi/ginkgo/ginkgo #12446bbcc74950944c897e32ea99cc8d058f9c92
-github.com/onsi/gomega #036273e6f643552b16fe7a6464afd2ae0324992e
+github.com/onsi/ginkgo/ginkgo #v1.1.0
+github.com/onsi/gomega #v1.0
 github.com/digitalocean/godo #0a9eb5ac75a250383e5d6991f33da22024cf58d4
 code.google.com/p/goauth2/oauth #afe77d958c701557ec5dc56f6936fcc194d15520
 
