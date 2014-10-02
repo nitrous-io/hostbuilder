@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -27,7 +28,13 @@ var (
 	TLSKeyLocation  = "/etc/freighterd/key.crt"
 	SecretLocation  = "/etc/freighterd/secret"
 
-	StateWaitTime = 3 * time.Second
+	StateWaitTime         = 3 * time.Second
+	FreighterPingTimeout  = 1 * time.Second
+	FreighterPingAttempts = []time.Duration{
+		5 * time.Second,
+		30 * time.Second,
+		90 * time.Second,
+	}
 
 	// FIXME: the map should belongs to client, not the builder
 	regionsMap = map[string]string{
@@ -106,8 +113,22 @@ func (h *Host) Create(w io.Writer) (*host.Info, error) {
 		}
 		return nil, err
 	}
+
+	info := h.dropletToInfo()
+	// do not remove a host if freighter is down, we keep the host for debugging
+	_ = h.pingFreighter(info, w)
 	fmt.Fprintf(w, "finished: the droplet should be ready now")
-	return h.dropletToInfo(), nil
+	return info, nil
+}
+
+func (h *Host) pingFreighter(dropletInfo *host.Info, w io.Writer) error {
+	contactAddr := fmt.Sprintf("https://%s:%d", dropletInfo.IPAddress, dropletInfo.FreighterdPort)
+	fmt.Fprintf(w, "Contacting freighter at %s", contactAddr)
+	if !WaitForServer(contactAddr, FreighterPingTimeout, FreighterPingAttempts) {
+		fmt.Fprintf(w, "failed: freighter not available")
+		return fmt.Errorf("freighter not available")
+	}
+	return nil
 }
 
 func (h *Host) Destroy() error {
@@ -174,6 +195,7 @@ func (h *Host) Stop() (*host.Info, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return h.Info()
 }
 
@@ -191,7 +213,17 @@ func (h *Host) Start() (*host.Info, error) {
 	if err != nil {
 		return nil, err
 	}
-	return h.Info()
+
+	info, err := h.Info()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := h.pingFreighter(info, ioutil.Discard); err != nil {
+		return nil, err
+	}
+
+	return info, nil
 }
 
 func (h *Host) Restart() (*host.Info, error) {
@@ -207,7 +239,17 @@ func (h *Host) Restart() (*host.Info, error) {
 	if err != nil {
 		return nil, err
 	}
-	return h.Info()
+
+	info, err := h.Info()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := h.pingFreighter(info, ioutil.Discard); err != nil {
+		return nil, err
+	}
+
+	return info, nil
 }
 
 func (h *Host) id() (int, error) {
@@ -401,9 +443,8 @@ func writeRepository(ctx *context.Context, hst host.Host) error {
 
 func updateSoftware(ctx *context.Context, hst host.Host) error {
 	h := hst.(*Host)
-	updateSoftwareCmd := `
-apt-get update && apt-get install -yq freighterd && service freighterd restart
-`
+	updateSoftwareCmd :=
+		`apt-get update && apt-get install -yq freighterd && service freighterd restart`
 	if err := h.conn.Execute(updateSoftwareCmd); err != nil {
 		return err
 	}
