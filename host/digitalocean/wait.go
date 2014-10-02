@@ -1,11 +1,14 @@
 package digitalocean
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/digitalocean/godo"
+	"github.com/nitrous-io/nitrous-common/httpclient"
 )
 
 const (
@@ -56,4 +59,28 @@ func WaitForAction(service godo.ActionsService, id int, wait, timeout time.Durat
 	case <-time.After(timeout):
 		return nil, fmt.Errorf("timeout while waiting to for event %d to complete", id)
 	}
+}
+
+// WaitForServer takes a urlStr and tries to retrieve a 200 response from it up
+// to len(attempts) times, waiting attempt(n-1) duration before attempt n
+func WaitForServer(urlStr string, clientTimeout time.Duration, attempts []time.Duration) bool {
+	if len(attempts) == 0 {
+		return true
+	}
+
+	client := httpclient.New("")
+	tr := &http.Transport{
+		DisableKeepAlives: true,
+		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
+	}
+	client.Client.Transport = tr
+	client.Client.Timeout = clientTimeout
+	for _, duration := range attempts {
+		resp, err := client.Get(urlStr, nil)
+		if err == nil && resp != nil && resp.StatusCode == http.StatusOK {
+			return true
+		}
+		time.Sleep(duration)
+	}
+	return false
 }
