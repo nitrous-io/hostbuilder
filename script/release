@@ -5,65 +5,18 @@ APP=${1:?"app name is required"}
 VERSION=${2:?"version is required"}
 ARTIFACT_DIR=/tmp/$APP/$VERSION
 
-PACKAGE_NAME=$APP
-PACKAGE_VERSION=$VERSION
-PACKAGE_ARCHITECTURE="$(dpkg-architecture -qDEB_HOST_ARCH)"
-PACKAGE_MAINTAINER="eng@nitrous.io"
-PACKAGE_DESCRIPTION="Hostbuilder: The Nitrous.IO host builder"
-PACKAGE_LICENSE="All Rights Reserved - Irrational Industries d/b/a Nitrous.IO"
-PACKAGE_URL="nitrous.io"
+# package
+PKGNAME=${APP}-${VERSION}.tgz
+BUCKET=nitrous-dedicated
+APPDIR=$APP
 
-FILES=./files/$PACKAGE_NAME
-PKGDIR=$ARTIFACT_DIR/pkg_skel
-
-mkdir -p $PKGDIR
-
-# setup app base
-install -m 0755 -D $ARTIFACT_DIR/$APP $PKGDIR/usr/local/bin/$APP
-
-# install control files over to $PKGDIR, for when directory context changes
-install -m 0644 -D $FILES/control/postinst $PKGDIR/$FILES/control/postinst
-install -m 0644 -D $FILES/control/prerm $PKGDIR/$FILES/control/prerm
-install -m 0644 -D $FILES/control/postrm $PKGDIR/$FILES/control/postrm
-
-# install configs
-install -m 0644 -D $FILES/data/etc/init/hostbuilder.conf $PKGDIR/etc/init/hostbuilder.conf
-
-cd $PKGDIR
-rm -f $PKGDIR/*.deb
-
-fpm \
-  -s dir \
-  --name $PACKAGE_NAME \
-  --version $PACKAGE_VERSION \
-  --architecture "$PACKAGE_ARCHITECTURE" \
-  --prefix / \
-  --description "$PACKAGE_DESCRIPTION" \
-  --maintainer "$PACKAGE_MAINTAINER" \
-  --provides $PACKAGE_NAME \
-  --replaces $PACKAGE_NAME \
-  --after-install $FILES/control/postinst \
-  --before-remove $FILES/control/prerm \
-  --after-remove $FILES/control/postrm \
-  --config-files /etc/init/hostbuilder.conf \
-  --license "$PACKAGE_LICENSE" \
-  --url "$PACKAGE_URL" \
-  --deb-compression gz \
-  -t deb .
-
-# cleanup
-rm -rf $PKGDIR/{usr,etc,files}
-
-DEB=${APP}_${VERSION}_amd64.deb
-# Release
-
-sysctl -p
-
-cd $PKGDIR
-if [[ -f $DEB ]]; then
-  echo "Adding $DEB to local repository"
-  deb-upload apt.nitrous.io $DEB public 6B19EAE0
+cd $ARTIFACT_DIR
+if [[ -f ${APP} ]]; then
+        tar -zcf ${PKGNAME} ${APP}
 else
-  echo "Failed to find deb package: $DEB in $ARTIFACT_DIR directory."
-  exit 1
+        exit 1
 fi
+
+s3cmd --access_key=$ACCESS_KEY --secret_key=$SECRET_KEY put ${ARTIFACT_DIR}/${PKGNAME} s3://${BUCKET}/${APPDIR}/$PKGNAME
+s3cmd --access_key=$ACCESS_KEY --secret_key=$SECRET_KEY put ${ARTIFACT_DIR}/${PKGNAME} s3://${BUCKET}/${APPDIR}/${APP}-latest.tgz
+
