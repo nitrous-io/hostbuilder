@@ -78,6 +78,8 @@ type Host struct {
 	privateKey *rsa.PrivateKey
 	conn       *ssh.Conn
 	sshKey     *godo.Key
+	uuid       string
+	logger     *log.Logger
 }
 
 func (h *Host) Create(w io.Writer) (*host.Info, error) {
@@ -283,7 +285,7 @@ func (h *Host) ipAddress() string {
 func NewHost(defaultConfig map[string]string, config string) (host.Host, error) {
 	hostConfig := &HostConfig{}
 	if err := json.Unmarshal([]byte(config), hostConfig); err != nil {
-		log.Printf("digitalocean: invalid config %s", config)
+		log.Printf("uuid=%s digitalocean: invalid config %s", defaultConfig["uuid"], config)
 		return nil, err
 	}
 	if defaultConfig["token"] == "" {
@@ -296,6 +298,11 @@ func NewHost(defaultConfig map[string]string, config string) (host.Host, error) 
 	host := &Host{
 		Config: hostConfig,
 		Client: client,
+		uuid:   defaultConfig["uuid"],
+		logger: log.New(os.Stderr, "", log.LstdFlags),
+	}
+	if host.uuid != "" {
+		host.logger.SetPrefix(fmt.Sprintf("uuid=%s ", host.uuid))
 	}
 	return host, nil
 }
@@ -359,7 +366,7 @@ func createDroplet(ctx *context.Context, hst host.Host) error {
 			return err
 		}
 	} else {
-		log.Printf("[WARNING] digitalocean does not return action data for host %+v", hst)
+		h.logger.Printf("[WARNING] digitalocean does not return action data for host %+v", hst)
 		return nil
 	}
 
@@ -382,7 +389,7 @@ func waitForSSH(ctx *context.Context, hst host.Host) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("SSH READY for droplet %v", h.droplet.ID)
+	h.logger.Printf("SSH READY for droplet %v", h.droplet.ID)
 	h.conn = sshConn
 	return nil
 }
@@ -426,7 +433,7 @@ func writeFile(h *Host, files map[string]io.Reader) error {
 		}
 		flist = append(flist, dest)
 	}
-	log.Printf("Uploaded (%s) to %v", strings.Join(flist, " "), h.ipAddress())
+	h.logger.Printf("Uploaded (%s) to %v", strings.Join(flist, " "), h.ipAddress())
 	return nil
 }
 
@@ -439,7 +446,7 @@ func writeRepository(ctx *context.Context, hst host.Host) error {
 	if err := h.conn.Upload(host.SourceLocation, sourceData); err != nil {
 		return err
 	}
-	log.Printf("Uploaded apt details at %v", h.ipAddress())
+	h.logger.Printf("Uploaded apt details at %v", h.ipAddress())
 	return nil
 }
 
@@ -450,7 +457,7 @@ func updateSoftware(ctx *context.Context, hst host.Host) error {
 	if err := h.conn.Execute(updateSoftwareCmd); err != nil {
 		return err
 	}
-	log.Printf("Updated software on %v", h.ipAddress())
+	h.logger.Printf("Updated software on %v", h.ipAddress())
 	return nil
 }
 
@@ -460,10 +467,18 @@ type DropletWriter struct {
 }
 
 func (w *DropletWriter) Write(p []byte) (int, error) {
-	if w.h == nil || w.h.droplet == nil {
+	parts := []string{}
+	if w.h == nil {
 		return w.writer.Write(append(p, []byte("\n")...))
 	}
-	s := fmt.Sprintf("Droplet %d: %s\n", w.h.droplet.ID, string(p))
+	if w.h.uuid != "" {
+		parts = append(parts, fmt.Sprintf("uuid=%s", w.h.uuid))
+	}
+	if w.h.droplet != nil {
+		parts = append(parts, fmt.Sprintf("droplet=%d", w.h.droplet.ID))
+	}
+	parts = append(parts, string(p))
+	s := strings.Join(parts, " ") + "\n"
 	_, err := fmt.Fprintf(w.writer, s)
 	return len(s), err
 }
