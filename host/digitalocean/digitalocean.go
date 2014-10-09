@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -80,14 +81,15 @@ type Host struct {
 }
 
 func (h *Host) Create(w io.Writer) (*host.Info, error) {
+	w = io.MultiWriter(NewDropletWriter(os.Stdout, h), w)
 	defer func() {
 		if h.sshKey != nil {
-			fmt.Fprintf(w, "starting: remove temporary ssh key")
+			fmt.Fprintf(w, "starting: remove temporary ssh key %d", h.sshKey.ID)
 			_, err := h.Client.Keys.DeleteByID(h.sshKey.ID)
 			if err != nil {
-				fmt.Fprintf(w, "failed: remove temporary ssh key")
+				fmt.Fprintf(w, "failed: remove temporary ssh key %d", h.sshKey.ID)
 			}
-			fmt.Fprintf(w, "finished: remove temporary ssh key")
+			fmt.Fprintf(w, "finished: remove temporary ssh key %d", h.sshKey.ID)
 		}
 	}()
 	steps := []context.Step{
@@ -450,4 +452,22 @@ func updateSoftware(ctx *context.Context, hst host.Host) error {
 	}
 	log.Printf("Updated software on %v", h.ipAddress())
 	return nil
+}
+
+type DropletWriter struct {
+	writer io.Writer
+	h      *Host
+}
+
+func (w *DropletWriter) Write(p []byte) (int, error) {
+	if w.h == nil || w.h.droplet == nil {
+		return w.writer.Write(append(p, []byte("\n")...))
+	}
+	s := fmt.Sprintf("Droplet %d: %s\n", w.h.droplet.ID, string(p))
+	_, err := fmt.Fprintf(w.writer, s)
+	return len(s), err
+}
+
+func NewDropletWriter(w io.Writer, h *Host) *DropletWriter {
+	return &DropletWriter{writer: w, h: h}
 }

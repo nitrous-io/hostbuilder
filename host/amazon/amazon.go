@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"log"
+	"os"
 	"text/template"
 
 	"github.com/mitchellh/goamz/ec2"
@@ -58,6 +59,7 @@ type Host struct {
 }
 
 func (h *Host) Create(w io.Writer) (*host.Info, error) {
+	w = io.MultiWriter(os.Stdout, w)
 	// generate key pair
 	k, err := generateTempKeypair(h.provider)
 	if err != nil {
