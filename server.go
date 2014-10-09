@@ -1,6 +1,8 @@
 package hostbuilder
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -60,8 +62,15 @@ type HttpHandler func(w http.ResponseWriter, r *http.Request) error
 
 func makeHttpHandler(handlerFunc HttpHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// TODO use a pool instead of generating each time
+		id := make([]byte, 4) // hex string len 8
+		if _, err := io.ReadFull(rand.Reader, id); err != nil {
+			panic(err)
+		}
+		requestID := hex.EncodeToString(id)
+		log.Printf("[%s] Request: %v %v\n", requestID, r.Method, r.URL.String())
 		if err := handlerFunc(w, r); err != nil {
-			log.Println("[ERROR] %s %s: %s", r.Method, r.URL, err)
+			log.Printf("[%s] [ERROR] %s %s: %s\n", requestID, r.Method, r.URL, err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		}
 	}
