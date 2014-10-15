@@ -81,20 +81,19 @@ type Server struct {
 
 // createHost streams progress data to the output. For example
 //
-// In sucess case:
+// In success case:
 //
-// { "stream": "starting: create ssh key" }
-// { "stream": "finished: create ssh key" }
-// { "stream": "starting: create the droplet" }
-// { "stream": "finished: create the droplet" }
-// { "stream": "finished: create the droplet" }
+// { "stream": "Creating key..." }
+// { "stream": "Creating key...Done!" }
+// { "stream": "Creating host..." }
+// { "stream": "Creating host...Done!" }
 // { "host": {"status": "created", "provider": "digitalocean" } }
 //
 // In error case:
-// { "stream": "starting: create ssh key" }
-// { "stream": "finished: create ssh key" }
-// { "stream": "starting: create the droplet" }
-// { "stream": "failed: create the droplet" }
+// { "stream": "Creating key..." }
+// { "stream": "Creating key...Done!" }
+// { "stream": "Creating host..." }
+// { "stream": "Creating host...Failed!" }
 // { "error": "failed to create the host" }
 func (s *Server) createHost(w http.ResponseWriter, r *http.Request) error {
 	if err := r.ParseForm(); err != nil {

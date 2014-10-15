@@ -24,13 +24,13 @@ type Context struct {
 
 func (c *Context) Execute() error {
 	for _, step := range c.steps {
-		fmt.Fprintf(c.w, "starting: %s", step.Description)
+		fmt.Fprintf(c.w, "%s...", step.Description)
 		if err := step.Fn(c, c.host); err != nil {
-			fmt.Fprintf(c.w, "failed: %s", step.Description)
+			fmt.Fprintf(c.w, "%s...Failed!", step.Description)
 			c.Error = err
 			return err
 		}
-		fmt.Fprintf(c.w, "finished: %s", step.Description)
+		fmt.Fprintf(c.w, "%s...Done!", step.Description)
 	}
 	return nil
 }
