@@ -44,6 +44,7 @@ type Host struct {
 // Create creates the docker container which acts as a container host, and write the
 // progress into w
 func (h *Host) Create(w io.Writer) (*host.Info, error) {
+	w = io.MultiWriter(os.Stdout, w)
 	for i, k := range h.PublicKeys {
 		h.PublicKeys[i] = strings.TrimSpace(k)
 	}

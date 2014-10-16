@@ -1,13 +1,15 @@
 package hostbuilder
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"os"
 
+	gcontext "github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/nitrous-io/nitrous-common/flusher"
 )
@@ -60,8 +62,17 @@ type HttpHandler func(w http.ResponseWriter, r *http.Request) error
 
 func makeHttpHandler(handlerFunc HttpHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		defer gcontext.Clear(r)
+		// TODO use a pool instead of generating each time
+		id := make([]byte, 4) // hex string len 8
+		if _, err := io.ReadFull(rand.Reader, id); err != nil {
+			panic(err)
+		}
+		requestID := hex.EncodeToString(id)
+		gcontext.Set(r, "uuid", requestID)
+		log.Printf("uuid=%s Request: %v %v\n", requestID, r.Method, r.URL.String())
 		if err := handlerFunc(w, r); err != nil {
-			log.Println("[ERROR] %s %s: %s", r.Method, r.URL, err)
+			log.Printf("uuid=%s [ERROR] %s %s: %s\n", requestID, r.Method, r.URL, err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		}
 	}
@@ -101,19 +112,27 @@ func (s *Server) createHost(w http.ResponseWriter, r *http.Request) error {
 	}
 	provider := r.Form.Get("provider")
 	providerConfig := s.Config.Providers[provider]
+	if providerConfig == nil {
+		providerConfig = make(map[string]string)
+	}
+	if uuid, ok := gcontext.Get(r, "uuid").(string); ok {
+		providerConfig["uuid"] = uuid
+	} else {
+		// shouldn't happen, use this to detect if it does
+		providerConfig["uuid"] = "NOUUID"
+	}
 	configJson := r.Form.Get("config")
-	log.Printf("Creating a host using provider %s", provider)
+	log.Printf("uuid=%s Creating a host using provider %s", providerConfig["uuid"], provider)
 
 	h, err := InitHost(provider, providerConfig, configJson)
 	if err != nil {
 		return err
 	}
 
-	// write the progress into the stdout so that it will be logged
-	pw := NewProgressWriter(io.MultiWriter(os.Stdout, flusher.NewWriteFlusher(w)))
+	pw := NewProgressWriter(flusher.NewWriteFlusher(w))
 
 	info, err := h.Create(pw)
-	log.Printf("Created: %+v\n, %v", info, err)
+	log.Printf("uuid=%s Created: %+v\n, %v", providerConfig["uuid"], info, err)
 	if err != nil {
 		pw.WriteError(fmt.Errorf("failed to create a host on %s", provider))
 		return nil
