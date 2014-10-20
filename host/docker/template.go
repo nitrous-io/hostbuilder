@@ -5,6 +5,9 @@ import "text/template"
 const dockerfileTmpl = `
 FROM nitrousio/ubuntu-dind:14.04
 
+ADD http://nitrous-public.s3.amazonaws.com/docker-6df533a /usr/bin/docker
+RUN chmod +x /usr/bin/docker
+
 ENV HOME /root
 
 RUN mkdir -p /etc/ssh
@@ -25,7 +28,7 @@ RUN /bin/bash -c 'echo -e {{printf "%q" .TLS.Key}} > /etc/freighterd/key.crt'
 RUN /bin/bash -c 'echo -e {{printf "%q" .Secret}} > /etc/freighterd/secret'
 {{ end }}
 
-RUN /bin/bash -c "echo -e '#!/bin/bash\nrm /var/run/docker.pid\ndocker -d -e lxc >& /var/log/docker.log &\n/freighterd' > /start-freighterd" && chmod +x /start-freighterd
+RUN /bin/bash -c "echo -e '#!/bin/bash\nrm /var/run/docker.pid\ndocker -d >& /var/log/docker.log &\n/freighterd' > /start-freighterd" && chmod +x /start-freighterd
 
 EXPOSE 65333
 `
